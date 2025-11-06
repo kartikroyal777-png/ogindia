@@ -1,0 +1,191 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, Bot, User, X, Compass, Shield, Utensils } from 'lucide-react';
+import { runGroqQuery } from '../../lib/groq';
+
+interface Message {
+  id: string;
+  type: 'user' | 'assistant';
+  content: string;
+}
+
+interface AssistantModalProps {
+  onClose: () => void;
+}
+
+const AssistantModal: React.FC<AssistantModalProps> = ({ onClose }) => {
+  const [messages, setMessages] = useState<Message[]>([
+    { id: '1', type: 'assistant', content: "Hi! I'm your AI travel assistant. Ask me anything about your India trip!" }
+  ]);
+  const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(scrollToBottom, [messages, isTyping]);
+
+  const quickSuggestions = [
+    { text: "What are some safety tips for Delhi?", icon: Shield },
+    { text: "Suggest a 3-day itinerary for Goa.", icon: Compass },
+    { text: "What's a must-try street food in Mumbai?", icon: Utensils },
+  ];
+
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim() || isTyping) return;
+
+    const userMessage: Message = { id: Date.now().toString(), type: 'user', content: text };
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setIsTyping(true);
+    setError(null);
+
+    try {
+      const prompt = `You are a friendly and expert travel assistant for "Go India", an app for foreigners visiting India. A user asks: "${text}". Provide a helpful, concise, and practical answer. Use emojis to make it engaging. Format your response with markdown for lists or emphasis where appropriate.`;
+      const aiResponse = await runGroqQuery(prompt);
+
+      const assistantMessage: Message = { id: (Date.now() + 1).toString(), type: 'assistant', content: aiResponse };
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (e: any) {
+      const errorMessage = e.message || "Sorry, I couldn't get a response. Please try again.";
+      setError(errorMessage);
+      const assistantMessage: Message = { id: (Date.now() + 1).toString(), type: 'assistant', content: `🚨 ${errorMessage}` };
+      setMessages(prev => [...prev, assistantMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  return (
+    <motion.div
+      // Overlay
+      className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        // Modal Content
+        className="
+          relative w-full bg-gray-100 flex flex-col overflow-hidden 
+          h-[85vh] rounded-t-2xl 
+          sm:h-auto sm:max-h-[calc(100vh-8rem)] sm:max-w-lg sm:rounded-2xl
+        "
+        initial={{ y: "100%", opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: "100%", opacity: 0 }}
+        transition={{ type: "spring", stiffness: 400, damping: 40 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center">
+              <Bot className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-medium text-gray-900">AI Travel Assistant</h1>
+              <p className="text-sm text-gray-500">Powered by Groq</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800"><X className="w-5 h-5" /></button>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 p-4 space-y-4 overflow-y-auto min-h-0">
+          {messages.map((message) => (
+            <motion.div
+              key={message.id}
+              layout
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex items-end space-x-3 max-w-[85%] ${message.type === 'user' ? 'ml-auto flex-row-reverse space-x-reverse' : ''}`}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.type === 'user' ? 'bg-orange-500' : 'bg-gray-200'}`}>
+                {message.type === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-gray-600" />}
+              </div>
+              <div className={`px-4 py-3 rounded-2xl shadow-sm ${message.type === 'user' ? 'bg-orange-500 text-white rounded-br-none' : 'bg-white text-gray-900 rounded-bl-none'}`}>
+                <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+              </div>
+            </motion.div>
+          ))}
+          {isTyping && (
+            <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-end space-x-3">
+              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0"><Bot className="w-4 h-4 text-gray-600" /></div>
+              <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-none shadow-sm">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Footer */}
+        <div className="flex-shrink-0 border-t border-gray-200 bg-white">
+          <AnimatePresence>
+            {messages.length <= 1 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-3 border-b border-gray-200">
+                  <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
+                    {quickSuggestions.map((suggestion, index) => {
+                      const Icon = suggestion.icon;
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => handleSendMessage(suggestion.text)}
+                          className="flex-shrink-0 flex items-center space-x-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-full px-3 py-1.5 hover:bg-gray-100 transition-colors"
+                        >
+                          <Icon className="w-4 h-4 text-orange-500" />
+                          <span>{suggestion.text}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Input Bar */}
+          <div className="p-4">
+            <div className="flex items-center space-x-3">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
+                placeholder="Ask anything..."
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                disabled={isTyping}
+              />
+              <motion.button
+                onClick={() => handleSendMessage(inputText)}
+                disabled={!inputText.trim() || isTyping}
+                className="w-11 h-11 bg-orange-500 text-white rounded-full flex items-center justify-center disabled:opacity-50"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Send className="w-5 h-5" />
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+export default AssistantModal;
