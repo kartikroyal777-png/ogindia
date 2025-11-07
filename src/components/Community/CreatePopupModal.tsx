@@ -1,142 +1,135 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { X, AlertCircle } from 'lucide-react';
-import { CityPopup, PopupType, GenderPref } from '../../types';
+import { useState } from 'react';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { City } from '../../types';
+import { X, Users, Tag, Heart, Handshake } from 'lucide-react';
 
 interface CreatePopupModalProps {
-  cityId: string;
+  city: City;
   onClose: () => void;
-  onCreate: (popup: Partial<CityPopup>) => void;
+  onSuccess: () => void;
 }
 
-const CreatePopupModal: React.FC<CreatePopupModalProps> = ({ cityId, onClose, onCreate }) => {
-  const { profile } = useAuth();
-  const [formData, setFormData] = useState<Partial<CityPopup>>({
-    city_id: cityId,
-    type: 'Meetup',
-    destination: '',
-    start_time: new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16), // Default to 1 hour from now
-    seats_available: 2,
-    description: '',
-    gender_pref: 'all',
-    allow_friendship: true,
-    allow_dating: false,
-  });
+const CreatePopupModal = ({ city, onClose, onSuccess }: CreatePopupModalProps) => {
+  const { user } = useAuth();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [maxAttendees, setMaxAttendees] = useState(10);
+  const [genderPreference, setGenderPreference] = useState('any');
+  const [openToDating, setOpenToDating] = useState(false);
+  const [openToFriendship, setOpenToFriendship] = useState(true);
+  const [price, setPrice] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const isProfileComplete = profile?.full_name && profile?.avatar_url && profile?.ig_link;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      const { checked } = e.target as HTMLInputElement;
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: name === 'seats_available' ? parseInt(value) : value }));
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCreatePopup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isProfileComplete) {
-      alert("Please complete your profile first.");
+    if (!user) {
+      setError('You must be logged in to create a popup.');
       return;
     }
-    onCreate(formData);
-    onClose();
+    if (!title || !description || !startTime || !endTime) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error: rpcError } = await supabase.rpc('create_popup_with_chat', {
+        p_city_id: city.id,
+        p_title: title,
+        p_description: description,
+        p_start_time: startTime,
+        p_end_time: endTime,
+        p_max_attendees: maxAttendees,
+        p_gender_preference: genderPreference,
+        p_open_to_dating: openToDating,
+        p_open_to_friendship: openToFriendship,
+        p_price: price ? parseFloat(price) : null,
+      });
+
+      if (rpcError) {
+        throw rpcError;
+      }
+
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      console.error('Error creating popup via RPC:', err);
+      setError(err.message || 'An unexpected error occurred while creating the popup.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold">Create a Popup</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100"><X /></button>
-        </div>
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
+      <div className="bg-gray-900 rounded-2xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 relative animate-fade-in-up">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+          <X size={24} />
+        </button>
+        <h2 className="text-2xl font-bold text-white mb-2">Create a Popup in {city.name}</h2>
+        <p className="text-gray-400 mb-6">Share your plans and meet new people!</p>
         
-        {!isProfileComplete ? (
-          <div className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold">Complete Your Profile</h3>
-            <p className="text-gray-600 my-2">To create a popup, please make sure you have a full name, profile picture, and Instagram link set up.</p>
-            <Link to="/profile">
-              <motion.button 
-                className="mt-4 px-6 py-2 bg-orange-500 text-white rounded-lg"
-                whileHover={{ scale: 1.05 }}
-              >
-                Go to Profile
-              </motion.button>
-            </Link>
+        <form onSubmit={handleCreatePopup} className="space-y-4">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+            <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+            <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium">Type</label>
-              <select name="type" value={formData.type} onChange={handleChange} className="w-full mt-1 p-2 border rounded-lg bg-gray-50">
-                <option>Meetup</option>
-                <option>Trip</option>
-                <option>Photo Walk</option>
-                <option>Dinner</option>
-                <option>Temple Visit</option>
-              </select>
+              <label htmlFor="start_time" className="block text-sm font-medium text-gray-300 mb-1">Start Time</label>
+              <input type="datetime-local" id="start_time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="text-sm font-medium">Destination</label>
-              <input name="destination" value={formData.destination} onChange={handleChange} placeholder="e.g., Amer Fort" className="w-full mt-1 p-2 border rounded-lg" required />
+              <label htmlFor="end_time" className="block text-sm font-medium text-gray-300 mb-1">End Time</label>
+              <input type="datetime-local" id="end_time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="maxAttendees" className="flex items-center text-sm font-medium text-gray-300 mb-1"><Users size={16} className="mr-2"/>Max Attendees</label>
+              <input type="number" id="maxAttendees" value={maxAttendees} onChange={(e) => setMaxAttendees(parseInt(e.target.value))} min="2" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="text-sm font-medium">Start Time</label>
-              <input name="start_time" type="datetime-local" value={formData.start_time} onChange={handleChange} className="w-full mt-1 p-2 border rounded-lg" required />
+              <label htmlFor="price" className="flex items-center text-sm font-medium text-gray-300 mb-1"><Tag size={16} className="mr-2"/>Price (Optional)</label>
+              <input type="number" id="price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g., 10.00" step="0.01" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
-              <textarea name="description" value={formData.description} onChange={handleChange} placeholder="What's the plan?" className="w-full mt-1 p-2 border rounded-lg" rows={3}></textarea>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Gender Preference</label>
+            <div className="flex space-x-4">
+              <label className="flex items-center text-gray-300"><input type="radio" name="gender" value="any" checked={genderPreference === 'any'} onChange={() => setGenderPreference('any')} className="mr-2 accent-blue-500"/> Any</label>
+              <label className="flex items-center text-gray-300"><input type="radio" name="gender" value="male" checked={genderPreference === 'male'} onChange={() => setGenderPreference('male')} className="mr-2 accent-blue-500"/> Male Only</label>
+              <label className="flex items-center text-gray-300"><input type="radio" name="gender" value="female" checked={genderPreference === 'female'} onChange={() => setGenderPreference('female')} className="mr-2 accent-blue-500"/> Female Only</label>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Seats Available</label>
-                <input name="seats_available" type="number" min="1" value={formData.seats_available} onChange={handleChange} className="w-full mt-1 p-2 border rounded-lg" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Gender Preference</label>
-                <select name="gender_pref" value={formData.gender_pref as GenderPref} onChange={handleChange} className="w-full mt-1 p-2 border rounded-lg bg-gray-50">
-                  <option value="all">All Genders</option>
-                  <option value="females_only">Females Only</option>
-                </select>
-              </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Open To</label>
+            <div className="flex space-x-6">
+              <label className="flex items-center text-gray-300 cursor-pointer"><input type="checkbox" checked={openToFriendship} onChange={(e) => setOpenToFriendship(e.target.checked)} className="mr-2 h-5 w-5 rounded accent-pink-500"/> <Handshake size={18} className="mr-1 text-pink-400"/> Friendship</label>
+              <label className="flex items-center text-gray-300 cursor-pointer"><input type="checkbox" checked={openToDating} onChange={(e) => setOpenToDating(e.target.checked)} className="mr-2 h-5 w-5 rounded accent-red-500"/> <Heart size={18} className="mr-1 text-red-400"/> Dating</label>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">I'm open to:</label>
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" id="friendship" name="allow_friendship" checked={formData.allow_friendship} onChange={handleChange} className="h-4 w-4 text-orange-600 border-gray-300 rounded" />
-                <label htmlFor="friendship" className="text-sm">Friendship</label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" id="dating" name="allow_dating" checked={formData.allow_dating} onChange={handleChange} className="h-4 w-4 text-orange-600 border-gray-300 rounded" />
-                <label htmlFor="dating" className="text-sm">Personal Connections (Dating)</label>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-3 pt-4">
-              <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-              <button type="submit" className="px-4 py-2 bg-orange-500 text-white rounded-lg">Create Popup</button>
-            </div>
-          </form>
-        )}
-      </motion.div>
-    </motion.div>
+          </div>
+          
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          
+          <div className="pt-2">
+            <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed flex justify-center items-center">
+              {loading ? 'Creating...' : 'Create Popup'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 

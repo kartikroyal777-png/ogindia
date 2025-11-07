@@ -7,6 +7,7 @@ import React, { useEffect, Suspense, lazy } from 'react';
     import FullScreenLoader from './components/Layout/FullScreenLoader';
     import ErrorBoundary from './components/Layout/ErrorBoundary';
     import { AlertTriangle } from 'lucide-react';
+    import EditProfileModal from './components/Profile/EditProfileModal';
 
     // Eager load core pages
     import HomePage from './components/Home/HomePage';
@@ -14,12 +15,13 @@ import React, { useEffect, Suspense, lazy } from 'react';
     import CityPopupsPage from './pages/CityPopupsPage';
     import ChatPage from './pages/ChatPage';
     import ToolsPage from './pages/ToolsPage';
-    import HotelBookingPage from './pages/HotelBookingPage';
     import AuthPage from './pages/AuthPage';
+    import ProfilePage from './pages/ProfilePage';
+    import ShopPage from './pages/ShopPage';
+    import TripPlannerPage from './pages/TripPlanner/TripPlannerPage';
 
     // Lazy load other pages
     const TravelScannerPage = lazy(() => import('./pages/TravelScannerPage'));
-    const ProfilePage = lazy(() => import('./components/Profile/ProfilePage'));
     const CityItineraryPage = lazy(() => import('./pages/CityItineraryPage'));
     const LocationDetailPage = lazy(() => import('./components/Location/LocationDetailPage'));
     const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
@@ -38,13 +40,11 @@ import React, { useEffect, Suspense, lazy } from 'react';
     const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
     const PricingPage = lazy(() => import('./pages/PricingPage'));
     const UpgradeModal = lazy(() => import('./components/Layout/UpgradeModal'));
-    const ShopPage = lazy(() => import('./pages/ShopPage'));
-    const TripPlannerPage = lazy(() => import('./pages/TripPlanner/TripPlannerPage'));
 
     const AppInitError: React.FC<{ message: string }> = ({ message }) => (
       <div className="fixed inset-0 bg-gray-100 z-[100] flex flex-col items-center justify-center text-center p-4">
         <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-800">Application Error</h2>
+        <h2 className="text-xl font-medium text-gray-800">Application Error</h2>
         <p className="text-gray-600 mt-2">Could not load the application. Please try refreshing the page.</p>
         <p className="text-xs text-gray-500 mt-4 bg-gray-200 p-2 rounded-md font-mono max-w-lg">{message}</p>
       </div>
@@ -72,6 +72,7 @@ import React, { useEffect, Suspense, lazy } from 'react';
 
     const AppLayout = () => {
       const location = useLocation();
+      const { isEditProfileModalOpen, showEditProfileModal } = useAuth();
       const noNavRoutes = ['/auth', '/admin'];
       
       const isFullScreenPage = [
@@ -107,6 +108,9 @@ import React, { useEffect, Suspense, lazy } from 'react';
 
           {showBottomNav && <BottomNavBar />}
           <Suspense fallback={null}><UpgradeModal /></Suspense>
+          <AnimatePresence>
+            {isEditProfileModalOpen && <EditProfileModal onClose={() => showEditProfileModal(false)} />}
+          </AnimatePresence>
         </div>
       );
     };
@@ -134,7 +138,6 @@ import React, { useEffect, Suspense, lazy } from 'react';
                 <Route path="/" element={<HomePage />} />
                 <Route path="/tools" element={<ToolsPage />} />
                 <Route path="/shop" element={<ShopPage />} />
-                <Route path="/hotels" element={<HotelBookingPage />} />
                 <Route path="/stranger" element={<StrangerPage />} />
                 <Route path="/stranger/:cityId" element={<CityPopupsPage />} />
                 

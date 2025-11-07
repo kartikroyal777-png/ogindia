@@ -1,64 +1,59 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-// Read the Lite API Key from environment variables
-const LITE_API_KEY = Deno.env.get('LITE_API_KEY')
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-serve(async (req) => {
-  // Handle CORS preflight requests
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Ensure the API key is available
-    if (!LITE_API_KEY) {
-      throw new Error("LITE_API_KEY is not configured in the server environment variables.");
+    const { city, checkIn, checkOut, adults } = await req.json();
+    const apiKey = Deno.env.get('LITE_API_KEY');
+
+    if (!apiKey) {
+      console.error('LITE_API_KEY is not set in Supabase environment variables.');
+      return new Response(
+        JSON.stringify({
+          error: 'Hotel API key is not configured on the server. Please contact support or the site administrator.',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
-    // Get parameters from the POST request body
-    const { city, checkin, checkout, adults = '1' } = await req.json();
-    
-    // Amadeus uses IATA codes, we're assuming the user provides this for now.
-    const cityCode = city; 
-    const checkInDate = checkin;
-    const checkOutDate = checkout;
+    const apiUrl = `https://engine.liteapi.travel/api/v2.0/search?city=${city}&checkin=${checkIn}&checkout=${checkOut}&adults=${adults}&currency=USD&country=US`;
 
-    // Validate required parameters
-    if (!cityCode || !checkInDate || !checkOutDate) {
-      return new Response(JSON.stringify({ error: true, message: 'Missing required parameters: city, checkin, checkout' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Construct the Amadeus API URL
-    const url = `https://test.api.amadeus.com/v2/shopping/hotel-offers?cityCode=${encodeURIComponent(cityCode)}&checkInDate=${checkInDate}&checkOutDate=${checkOutDate}&adults=${adults}&roomQuantity=1&bestRateOnly=true`;
-    
-    // Fetch data from Amadeus using the Lite API Key (Bearer Token)
-    const res = await fetch(url, { 
-      headers: { Authorization: `Bearer ${LITE_API_KEY}` } 
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json',
+      },
     });
-    
-    // Handle non-successful responses from Amadeus
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("Amadeus API Error:", text);
-      const errorDetails = `Amadeus API Error: ${res.status} - ${text}`;
-      return new Response(JSON.stringify({ error: true, details: errorDetails }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: res.status });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Hotel API request failed:', errorData);
+      throw new Error(`Hotel API request failed with status: ${response.status}`);
     }
-    
-    const data = await res.json();
-    
-    // Return the successful response
-    return new Response(JSON.stringify({ ok: true, data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (err) {
-    // Handle any other errors during execution
-    console.error(err);
-    return new Response(JSON.stringify({ error: true, message: err.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+
+    const data = await response.json();
+
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+  } catch (error) {
+    console.error('Error processing hotel search request:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 });

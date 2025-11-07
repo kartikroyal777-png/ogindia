@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, User, Crown, LogIn, ShoppingBag, Star } from 'lucide-react';
+import { Bell, User, Crown, LogIn, Star, Map } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -40,9 +40,9 @@ const TopNavBar: React.FC = () => {
                   </motion.button>
                 </Link>
               )}
-              <Link to="/shop">
+              <Link to="/planner">
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <ShoppingBag className="w-5 h-5 text-gray-600" />
+                  <Map className="w-5 h-5 text-gray-600" />
                 </motion.button>
               </Link>
               <Link to="/notifications">

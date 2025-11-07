@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { City } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import StrangerCityCard from '../components/Community/StrangerCityCard';
 
 const StrangerPage: React.FC = () => {
   const { user } = useAuth();
@@ -82,50 +83,30 @@ const StrangerPage: React.FC = () => {
     return { joinedCities: joined, otherCities: others };
   }, [filteredCities, joinedCityIds]);
 
-  const CityItem: React.FC<{ city: City; isJoined: boolean }> = ({ city, isJoined }) => (
-    <motion.div
-      layout
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="bg-white p-4 rounded-xl shadow-sm border flex items-center justify-between"
-    >
-      <div>
-        <h3 className="font-semibold text-lg text-gray-800">{city.name}</h3>
-        <p className="text-sm text-gray-500 flex items-center space-x-1">
-          <Users className="w-3 h-3" />
-          <span>{memberCounts[city.id] || 0} members</span>
-        </p>
-      </div>
-      <div className="flex items-center space-x-2">
-        <Link to={`/stranger/${city.id}`}>
-          <button className="px-4 py-2 bg-gray-100 text-sm font-medium rounded-lg hover:bg-gray-200">View</button>
-        </Link>
-        {!isJoined && (
-          <button onClick={() => handleJoinCity(city.id)} className="px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600">Join</button>
-        )}
-      </div>
-    </motion.div>
-  );
-
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-white p-4 shadow-sm sticky top-0 z-10 flex items-center space-x-4">
-        <Link to="/" className="p-2 rounded-full hover:bg-gray-100">
-          <ArrowLeft className="w-5 h-5 text-gray-800" />
-        </Link>
-        <h1 className="text-xl font-semibold text-gray-900">Travel With Stranger</h1>
+      <div className="relative bg-gradient-to-br from-orange-50 to-orange-100 p-4 pt-6 pb-8 border-b">
+         <div className="absolute top-4 left-4 z-10">
+            <Link to="/" className="p-2 rounded-full bg-white/50 hover:bg-white transition-colors">
+                <ArrowLeft className="w-5 h-5 text-gray-800" />
+            </Link>
+         </div>
+         <div className="text-center mt-8">
+            <Users className="w-12 h-12 text-orange-500 mx-auto mb-3" />
+            <h1 className="text-2xl font-medium text-gray-900 mb-2">Travel With Strangers</h1>
+            <p className="text-gray-600 max-w-md mx-auto">Join city-specific groups to find travel buddies, plan meetups, and share experiences.</p>
+         </div>
       </div>
 
-      <div className="p-4 sticky top-[72px] bg-gray-50/80 backdrop-blur-sm z-10">
+      <div className="p-4 sticky top-[0] bg-gray-50/80 backdrop-blur-sm z-10">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Search for a city..."
+            placeholder="Search for a city to join..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border rounded-xl"
+            className="w-full pl-10 pr-4 py-3 border rounded-xl shadow-sm"
           />
         </div>
       </div>
@@ -139,19 +120,19 @@ const StrangerPage: React.FC = () => {
           <>
             {joinedCities.length > 0 && (
               <div>
-                <h2 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wider">My Cities</h2>
-                <div className="space-y-3">
-                  {joinedCities.map(city => <CityItem key={city.id} city={city} isJoined={true} />)}
+                <h2 className="text-sm font-medium text-gray-600 mb-3 uppercase tracking-wider">My Cities</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {joinedCities.map(city => <StrangerCityCard key={city.id} city={city} memberCount={memberCounts[city.id] || 0} isJoined={true} onJoin={handleJoinCity} />)}
                 </div>
               </div>
             )}
             <div>
-              <h2 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wider">All Cities</h2>
-              <div className="space-y-3">
+              <h2 className="text-sm font-medium text-gray-600 mb-3 uppercase tracking-wider">{joinedCities.length > 0 ? 'Explore Other Cities' : 'All Cities'}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {otherCities.length > 0 ? (
-                  otherCities.map(city => <CityItem key={city.id} city={city} isJoined={false} />)
+                  otherCities.map(city => <StrangerCityCard key={city.id} city={city} memberCount={memberCounts[city.id] || 0} isJoined={false} onJoin={handleJoinCity} />)
                 ) : (
-                  <p className="text-center text-gray-500 py-8">No cities match your search.</p>
+                  <p className="text-center text-gray-500 py-8 col-span-full">No cities match your search.</p>
                 )}
               </div>
             </div>

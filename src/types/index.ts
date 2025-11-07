@@ -1,3 +1,13 @@
+export interface Profile {
+  id: string;
+  full_name: string;
+  avatar_url: string;
+  ig_link?: string;
+  plan_type: 'free' | 'paid';
+  food_scanner_used: number;
+  trip_planner_used: number;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -5,14 +15,8 @@ export interface Category {
   emoji: string;
 }
 
-export interface CityCategory {
-  city_id: string;
-  category_id: string;
-  categories?: Category;
-}
-
 export interface City {
-  id:string;
+  id: string;
   name: string;
   state: string;
   description: string;
@@ -22,7 +26,7 @@ export interface City {
   safety_score: number;
   best_time_to_visit: string;
   weather_info: string;
-  city_categories?: CityCategory[];
+  city_categories?: { category_id: string }[];
 }
 
 export interface Day {
@@ -30,146 +34,138 @@ export interface Day {
   city_id: string;
   day_number: number;
   title: string;
-  city?: City;
-  locations?: Location[];
 }
 
 export interface LocationImage {
   id: string;
   location_id: string;
   image_url: string;
-  alt_text?: string;
+  caption?: string;
 }
-
-interface PhotoSpot {
-  title: string;
-  description: string;
-  image_url: string;
-  map_link: string;
-}
-
-interface Recommendation {
-  name: string;
-  image_url: string;
-  map_link: string;
-}
-
-interface LocalFood {
-  name: string;
-  shop: string;
-  image_url: string;
-  map_link: string;
-}
-
-interface InfluencerVideo {
-  title: string;
-  video_id: string;
-  influencer_name: string;
-}
-
-interface ActivityItem {
-  title: string;
-  description: string;
-  image_url: string;
-}
-
-export type TimeOfDay = 'Morning' | 'Afternoon' | 'Evening' | 'Anytime';
 
 export interface Location {
   id: string;
-  day_id: string | null;
-  timing_tag: TimeOfDay | null;
+  day_id: string;
   name: string;
   category: string;
   short_intro: string;
   image_url: string;
   latitude: number | null;
   longitude: number | null;
-  images: LocationImage[];
-  day?: Day;
-  details: {
-    about?: {
-      historical_background: string;
-      cultural_significance: string;
-      why_famous: string;
-    };
-    booking_info?: {
-      package_booking_link: string;
-      vehicle_rental_link: string;
-    };
-    opening_hours?: {
-      daily_timings: Record<string, string>;
-      weekly_closures: string[];
-      seasonal_changes: string;
-    };
-    best_time_to_visit?: {
-      best_season: string;
-      best_time_of_day: string;
-      festival_timing: string;
-    };
-    transport?: {
-      nearest_airport: string;
-      nearest_railway_station: string;
-      last_mile_options: string;
-      taxi_cost_estimate: string;
-    };
-    safety_risks?: {
-      safety_score: number;
-      scams_warnings: string[];
-      womens_safety_rating: string;
-      emergency_contacts: { name: string; number: string }[];
-    };
-    cultural_etiquette?: {
-      dress_code: string;
-      dos_donts: string[];
-      temple_etiquette: string;
-      photography_rules: string;
-    };
-    costs_money?: {
-      ticket_prices: { local: string; foreigner: string };
-      avg_budget_per_day: string;
-      haggling_info: string;
-      digital_payment_availability: string;
-    };
-    amenities?: {
-      toilets: string;
-      wifi: string;
-      seating: string;
-      water_refills: string;
-      cloakrooms: string;
-    };
-    hygiene_index?: {
-      rating: number;
-      notes: string;
-    };
-    guides?: {
-      availability: string;
-      booking_info: string;
-    };
-    map_navigation?: {
-      google_maps_link: string;
-    };
-    events_festivals?: {
-      event_name: string;
-      event_date: string;
-      type: string;
-    };
-    things_to_do?: {
-      main_activities: ActivityItem[];
-      nearby_attractions: string[];
-    };
-    photo_spots?: PhotoSpot[];
-    recommended_restaurants?: Recommendation[];
-    recommended_hotels?: Recommendation[];
-    local_foods?: LocalFood[];
-    influencer_videos?: InfluencerVideo[];
-  };
+  timing_tag: TimeOfDay;
+  details: any; // Using 'any' for this complex nested JSON
+  images?: LocationImage[];
+  day?: Day; // For nested queries
+}
+
+export type TimeOfDay = 'Morning' | 'Afternoon' | 'Evening' | 'Anytime';
+
+export interface SafetyAlert {
+  id: string;
+  location: string;
+  type: 'scam' | 'safety' | 'health';
+  severity: 'low' | 'medium' | 'high';
+  title: string;
+  description: string;
+  reported_at: string;
+  verified: boolean;
 }
 
 export interface SavedPlace {
   user_id: string;
   location_id: string;
-  locations: Location; // For joined data
+  created_at: string;
+  locations: Location;
+}
+
+export interface CityPopup {
+  id: string;
+  city_id: string;
+  creator_id: string;
+  title: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  created_at: string;
+  creator: Profile;
+  max_attendees: number;
+  expires_at: string;
+  gender_preference: 'any' | 'male' | 'female';
+  open_to_dating: boolean;
+  open_to_friendship: boolean;
+  price?: number;
+  chat_group_id: string;
+  chat_groups: { id: string }[]; // For querying joined status
+}
+
+export interface Notification {
+  id: number;
+  user_id: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  type: 'new_popup' | 'chat_message' | 'friend_request' | 'info' | 'promo' | 'alert';
+  entity_id: string;
+  title?: string;
+}
+
+export interface ChatGroup {
+  id: string;
+  name: string;
+  created_at: string;
+  popup_id?: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  group_id: string;
+  user_id: string;
+  content?: string;
+  image_url?: string;
+  location_data?: { lat: number; lng: number };
+  created_at: string;
+  profiles: Profile;
+}
+
+export interface ChatGroupMember {
+  id: number;
+  group_id: string;
+  user_id: string;
+  joined_at: string;
+}
+
+export interface Phrase {
+  id: string;
+  category: string;
+  en: string;
+  hi: string;
+  pronunciation?: string;
+  is_adult: boolean;
+  created_at: string;
+}
+
+export interface BargainingPrice {
+  id: string;
+  location_name: string;
+  item_name: string;
+  fair_price_range: string;
+  quoted_price_range: string;
+}
+
+// Trip Planner Types
+export interface Activity {
+  id: string;
+  time: 'Morning' | 'Afternoon' | 'Evening';
+  title: string;
+  description: string;
+  type: 'spot' | 'hotel' | 'food';
+  google_maps_link?: string;
+}
+
+export interface DayPlan {
+  day: number;
+  title: string;
+  activities: Activity[];
 }
 
 export interface TripPreferences {
@@ -186,101 +182,5 @@ export interface SavedTrip {
   trip_details: {
     preferences: TripPreferences;
     itinerary: DayPlan[];
-  }
-}
-
-export interface DayPlan {
-  day: number;
-  title: string;
-  activities: Activity[];
-}
-
-export interface Activity {
-  id: string;
-  time: 'Morning' | 'Afternoon' | 'Evening';
-  title: string;
-  description: string;
-  type: 'spot' | 'hotel' | 'food';
-  google_maps_link?: string;
-}
-
-export interface SafetyAlert {
-  id: string;
-  location: string;
-  type: 'scam' | 'safety' | 'general';
-  severity: 'low' | 'medium' | 'high';
-  title: string;
-  description: string;
-  reported_at: string;
-  verified: boolean;
-}
-
-export interface Phrase {
-  id: string;
-  category: string;
-  en: string;
-  hi: string;
-  pronunciation: string | null;
-  is_adult: boolean;
-  created_at: string;
-}
-
-export interface BargainingPrice {
-  id: string;
-  location_name: string;
-  item_name: string;
-  fair_price_range: string;
-  quoted_price_range: string;
-}
-
-export interface Profile {
-  id: string;
-  updated_at: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  plan_type: 'free' | 'paid';
-  food_scanner_used: number;
-  trip_planner_used: number;
-  ig_link?: string;
-}
-
-// Hotel Booking Types
-export interface HotelOffer {
-  hotel_id: string;
-  name: string;
-  address: string;
-  coordinates: { lat:number; lon:number };
-  rating: number;
-  images: string[];
-  price: { amount:number; currency:string; type: 'per_night'|'total' };
-  rooms?: { id:string; name:string; description?:string; price:number; refundable:boolean }[]
-  amenities: string[];
-  distance_meters?: number;
-  provider: string;
-  raw: any;
-}
-
-// Community / Travel with Stranger Types
-export type PopupType = 'Trip' | 'Meetup' | 'Photo Walk' | 'Dinner' | 'Temple Visit';
-export type GenderPref = 'all' | 'females_only' | 'males_only';
-
-export interface CityPopup {
-  id: string;
-  creator_id: string;
-  city_id: string;
-  destination: string;
-  start_time: string;
-  end_time?: string;
-  seats_available: number;
-  price?: number;
-  type: PopupType;
-  description?: string;
-  gender_pref: GenderPref;
-  allow_dating: boolean;
-  allow_friendship: boolean;
-  verified_only: boolean;
-  image_url?: string;
-  expires_at: string;
-  created_at: string;
-  creator?: Partial<Profile> | null;
+  };
 }

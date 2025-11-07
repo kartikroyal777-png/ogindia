@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Scan, Wrench, Hotel, Users } from 'lucide-react';
+import { Home, Scan, Wrench, ShoppingBag, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const NavItem: React.FC<{ path: string; label: string; icon: React.ElementType }> = ({ path, label, icon: Icon }) => {
@@ -35,7 +35,7 @@ const BottomNavBar: React.FC = () => {
     { path: '/', label: 'Home', icon: Home },
     { path: '/stranger', label: 'Stranger', icon: Users },
     { path: '/tools', label: 'Tools', icon: Wrench },
-    { path: '/hotels', label: 'Hotels', icon: Hotel },
+    { path: '/shop', label: 'Shop', icon: ShoppingBag },
   ];
 
   return (

@@ -23,7 +23,7 @@ const CityCard: React.FC<CityCardProps> = ({ city, onClick, index }) => {
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={city?.thumbnail_url || 'https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/400x300.png'}
+          src={city?.thumbnail_url || 'https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/400x300.png'}
           alt={city?.name || 'City'}
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
         />

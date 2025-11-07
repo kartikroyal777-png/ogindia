@@ -110,7 +110,7 @@ const CityItineraryPage: React.FC = () => {
   return (
     <div className="bg-gray-50 min-h-screen pb-10">
       <div className="relative h-64">
-        <img src={city.thumbnail_url || 'https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/800x600.png'} alt={city.name} className="w-full h-full object-cover" />
+        <img src={city.thumbnail_url || 'https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/800x600.png'} alt={city.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <motion.button onClick={() => navigate('/')} className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm p-2 rounded-full z-10" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
           <ArrowLeft className="w-5 h-5 text-gray-800" />

@@ -29,6 +29,8 @@ interface AuthContextType {
   upgradeToPaid: () => Promise<{ error: any }>;
   isUpgradeModalOpen: boolean;
   showUpgradeModal: (show: boolean) => void;
+  isEditProfileModalOpen: boolean;
+  showEditProfileModal: (show: boolean) => void;
   refreshProfile: () => Promise<void>;
 }
 
@@ -41,6 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   const isAdmin = user?.email === 'kartikroyal777@gmail.com';
 
@@ -165,6 +168,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     upgradeToPaid,
     isUpgradeModalOpen,
     showUpgradeModal: setIsUpgradeModalOpen,
+    isEditProfileModalOpen,
+    showEditProfileModal: setIsEditProfileModalOpen,
     refreshProfile,
   };
 
