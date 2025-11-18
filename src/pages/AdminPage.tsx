@@ -1,87 +1,83 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Shield, Bell, Globe, LayoutDashboard, LogOut, ArrowLeft, Tag, Users } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import ContentManager from '../components/Admin/ContentManager';
+import { useState } from 'react';
+import { Shield, Bell, Map, BookOpen, Users, Building, MessageSquare } from 'lucide-react';
 import NotificationManager from '../components/Admin/NotificationManager';
+import ContentManager from '../components/Admin/ContentManager';
 import DictionaryManager from '../components/Admin/DictionaryManager';
 import PriceGuideManager from '../components/Admin/PriceGuideManager';
-import CommunityManager from '../components/Admin/CommunityManager';
+import StrangerCityManager from '../components/Admin/StrangerCityManager';
 
-const Dashboard = () => <div className="p-6 bg-gray-100 rounded-lg">Dashboard content goes here. Analytics and summary stats will be shown here.</div>;
+const AdminPage = () => {
+  const [activeTab, setActiveTab] = useState('strangerCities');
 
-const AdminPage: React.FC = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('dashboard');
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+  const tabs = {
+    strangerCities: {
+      label: 'Stranger Cities',
+      icon: Users,
+      component: <StrangerCityManager />,
+    },
+    notifications: {
+      label: 'Notifications',
+      icon: Bell,
+      component: <NotificationManager />,
+    },
+    content: {
+      label: 'Content Manager',
+      icon: Map,
+      component: <ContentManager />,
+    },
+    dictionary: {
+      label: 'Dictionary',
+      icon: BookOpen,
+      component: <DictionaryManager />,
+    },
+    priceGuide: {
+        label: 'Price Guide',
+        icon: Building,
+        component: <PriceGuideManager />,
+    },
   };
 
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'content', label: 'Content', icon: Shield },
-    { id: 'community', label: 'Community', icon: Users },
-    { id: 'dictionary', label: 'Dictionary', icon: Globe },
-    { id: 'price_guide', label: 'Price Guide', icon: Tag },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-  ];
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'content': return <ContentManager />;
-      case 'community': return <CommunityManager />;
-      case 'notifications': return <NotificationManager />;
-      case 'dictionary': return <DictionaryManager />;
-      case 'price_guide': return <PriceGuideManager />;
-      default: return <Dashboard />;
-    }
-  };
+  const TabButton = ({ id, label, icon: Icon }: { id: string; label: string; icon: React.ElementType }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 w-full text-left ${
+        activeTab === id
+          ? 'bg-orange-500 text-white shadow-md'
+          : 'text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+      }`}
+    >
+      <Icon className="mr-3 h-5 w-5" />
+      <span>{label}</span>
+    </button>
+  );
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <aside className="w-64 bg-gray-900 text-white flex flex-col">
-        <div className="p-6 border-b border-gray-700">
-          <h1 className="text-2xl font-medium">Admin Panel</h1>
-          <p className="text-sm text-gray-400 truncate">{user?.email}</p>
+    <div className="min-h-screen bg-gray-100">
+      <div className="container mx-auto px-4 py-8">
+        <header className="mb-8">
+          <h1 className="text-4xl font-extrabold text-gray-800 flex items-center">
+            <Shield className="mr-3 h-10 w-10 text-orange-500" />
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-500 mt-1">Manage your application content and settings.</p>
+        </header>
+
+        <div className="flex flex-col md:flex-row gap-8">
+          <aside className="md:w-1/4 lg:w-1/5">
+            <div className="bg-white rounded-xl shadow-sm p-4 space-y-2">
+              {Object.entries(tabs).map(([id, { label, icon }]) => (
+                <TabButton key={id} id={id} label={label} icon={icon} />
+              ))}
+            </div>
+          </aside>
+
+          <main className="flex-1">
+            <div className="bg-white rounded-xl shadow-sm p-6 min-h-[60vh]">
+              {tabs[activeTab as keyof typeof tabs].component}
+            </div>
+          </main>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors text-left ${
-                activeTab === tab.id ? 'bg-orange-600 text-white' : 'hover:bg-gray-700'
-              }`}
-            >
-              <tab.icon className="w-5 h-5" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-gray-700">
-          <button onClick={() => navigate('/')} className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-700 text-left mb-2">
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to App</span>
-          </button>
-          <button onClick={handleSignOut} className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-700 text-left">
-            <LogOut className="w-5 h-5" />
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </aside>
-      <main className="flex-1 p-8 overflow-y-auto">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          {renderContent()}
-        </motion.div>
-      </main>
+      </div>
     </div>
   );
 };

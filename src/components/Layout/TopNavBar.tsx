@@ -1,73 +1,53 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, User, Crown, LogIn, Star, Map } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { UserCircle, LogIn, LogOut, Shield } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import toast from 'react-hot-toast';
 
-const TopNavBar: React.FC = () => {
-  const { session, profile, isAdmin } = useAuth();
-  const showUpgradeButton = session && !isAdmin && profile?.plan_type === 'free';
+const TopNavBar = () => {
+  const { session, isAdmin } = useAuth();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Logout failed: ' + error.message);
+    } else {
+      toast.success('Logged out successfully!');
+    }
+  };
 
   return (
-    <motion.header 
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-100 px-4 py-3 z-30"
-    >
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <Link to="/" className="flex items-center space-x-2">
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-              <Crown className="w-5 h-5 text-white" />
-            </div>
-          </motion.div>
-          <h1 className="text-xl font-medium text-gray-900">
-            Go <span className="text-orange-500">India</span>
-          </h1>
-        </Link>
-
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {session ? (
-            <>
-              {showUpgradeButton && (
-                <Link to="/pricing">
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center space-x-2 bg-yellow-400 text-yellow-900 px-3 py-1.5 rounded-lg text-sm font-semibold">
-                    <Star className="w-4 h-4" />
-                    <span>Upgrade</span>
-                  </motion.button>
+    <nav className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-40">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center h-16">
+          <Link to="/" className="text-2xl font-bold text-orange-500">
+            Wander
+          </Link>
+          <div className="flex items-center gap-4">
+            {session ? (
+              <>
+                {isAdmin && (
+                  <Link to="/admin" className="text-gray-600 hover:text-orange-500 transition-colors p-2 rounded-full hover:bg-orange-100" title="Admin">
+                    <Shield size={22} />
+                  </Link>
+                )}
+                <Link to="/profile" className="text-gray-600 hover:text-orange-500 transition-colors p-2 rounded-full hover:bg-orange-100" title="Profile">
+                  <UserCircle size={24} />
                 </Link>
-              )}
-              <Link to="/planner">
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <Map className="w-5 h-5 text-gray-600" />
-                </motion.button>
-              </Link>
-              <Link to="/notifications">
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <Bell className="w-5 h-5 text-gray-600" />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white"></span>
-                </motion.button>
-              </Link>
-              <Link to="/profile">
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors">
-                  <User className="w-4 h-4 text-gray-600" />
-                </motion.button>
-              </Link>
-            </>
-          ) : (
-            <Link to="/auth">
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center space-x-2 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm">
-                <LogIn className="w-4 h-4" />
+                <button onClick={handleLogout} className="text-gray-600 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-100" title="Logout">
+                  <LogOut size={22} />
+                </button>
+              </>
+            ) : (
+              <Link to="/auth" className="flex items-center gap-2 text-gray-600 font-semibold hover:text-orange-500 transition-colors">
+                <LogIn size={20} />
                 <span>Login</span>
-              </motion.button>
-            </Link>
-          )}
+              </Link>
+            )}
+          </div>
         </div>
       </div>
-    </motion.header>
+    </nav>
   );
 };
 

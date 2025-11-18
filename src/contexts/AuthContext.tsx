@@ -1,181 +1,79 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { Profile } from '../types';
-
-const PLAN_LIMITS = {
-  free: {
-    food_scanner: 10,
-    trip_planner: 10,
-  },
-  paid: {
-    food_scanner: 300,
-    trip_planner: Infinity,
-  },
-};
-
-type Feature = 'food_scanner' | 'trip_planner';
+import FullScreenLoader from '../components/Layout/FullScreenLoader';
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: Profile | null;
   loading: boolean;
-  error: string | null;
-  signOut: () => void;
   isAdmin: boolean;
-  canUseFeature: (feature: Feature) => boolean;
-  incrementFeatureUsage: (feature: Feature) => Promise<void>;
-  upgradeToPaid: () => Promise<{ error: any }>;
-  isUpgradeModalOpen: boolean;
-  showUpgradeModal: (show: boolean) => void;
-  isEditProfileModalOpen: boolean;
-  showEditProfileModal: (show: boolean) => void;
-  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const isAdmin = user?.email === 'kartikroyal777@gmail.com';
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-  const fetchProfile = useCallback(async (user: User) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') { // Ignore error for no rows found
-        throw error;
-      }
-      if (data) setProfile(data);
-    } catch (error: any) {
-      console.error('Error fetching profile:', error);
-      setError(`Failed to fetch user profile: ${error.message}`);
-    }
+    // Fetch initial session
+    const getInitialSession = async () => {
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        setLoading(false);
+    };
+    
+    getInitialSession();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-            fetchProfile(currentUser).finally(() => {
-                setLoading(false);
-            });
+    const checkAdmin = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
         } else {
-            setLoading(false);
+          setIsAdmin(data?.is_admin || false);
         }
-    }).catch((err) => {
-        console.error("Error getting session:", err);
-        setError("Could not connect to authentication service.");
-        setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setSession(session);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-
-        if (currentUser) {
-            setTimeout(() => {
-                fetchProfile(currentUser);
-            }, 0);
-        } else {
-            setProfile(null);
-        }
-    });
-
-    return () => {
-        subscription?.unsubscribe();
+      } else {
+        setIsAdmin(false);
+      }
     };
-  }, [fetchProfile]);
-  
-  const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user);
-    }
-  };
 
-  const canUseFeature = (feature: Feature): boolean => {
-    if (isAdmin) return true;
-    if (!profile) return false;
-    
-    const limit = PLAN_LIMITS[profile.plan_type][feature];
-    const usageKey = feature === 'food_scanner' ? 'food_scanner_used' : 'trip_planner_used';
-    const used = profile[usageKey] || 0;
-    
-    return used < limit;
-  };
+    checkAdmin();
+  }, [user]);
 
-  const incrementFeatureUsage = async (feature: Feature) => {
-    if (!profile || !user) return;
-    if (!canUseFeature(feature)) return;
-
-    const usageKey = feature === 'food_scanner' ? 'food_scanner_used' : 'trip_planner_used';
-    const newCount = (profile[usageKey] || 0) + 1;
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ [usageKey]: newCount })
-      .eq('id', user.id);
-    
-    if (!error) {
-      setProfile(prev => prev ? { ...prev, [usageKey]: newCount } : null);
-    } else {
-      console.error(`Error incrementing ${feature} usage:`, error);
-    }
-  };
-  
-  const upgradeToPaid = async () => {
-    if (!user) return { error: 'User not logged in' };
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ plan_type: 'paid' })
-      .eq('id', user.id);
-      
-    if (!error) {
-      await refreshProfile();
-    }
-    
-    return { error };
-  };
 
   const value = {
     session,
     user,
-    profile,
     loading,
-    error,
-    signOut: () => supabase.auth.signOut(),
-    isAdmin,
-    canUseFeature,
-    incrementFeatureUsage,
-    upgradeToPaid,
-    isUpgradeModalOpen,
-    showUpgradeModal: setIsUpgradeModalOpen,
-    isEditProfileModalOpen,
-    showEditProfileModal: setIsEditProfileModalOpen,
-    refreshProfile,
+    isAdmin
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {loading ? <FullScreenLoader /> : children}
     </AuthContext.Provider>
   );
 };
